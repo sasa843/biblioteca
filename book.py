@@ -1,87 +1,114 @@
 import streamlit as st
 import pandas as pd
-from pathlib import Path
+import os
 
-# ---------- Config ----------
-st.set_page_config(page_title="📚 Saswata's Library", layout="wide")
-st.title("📚 Saswata's Library")
+# --------- PAGE SETUP ---------
+st.set_page_config(page_title="Saswata’s Library", layout="wide")
 
-# ---------- Load Excel ----------
-EXCEL_FILE = "Book_Database_With_Samples_And_Format.xlsx"
+st.markdown("""
+    <style>
+    .title-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: -30px;
+    }
+    .title-text {
+        font-family: 'Georgia', serif;
+        font-size: 40px;
+        color: #3a3a3a;
+    }
+    .subtitle {
+        font-size: 16px;
+        color: #777;
+    }
+    .book-card {
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 20px;
+        background-color: #fff;
+        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+with st.container():
+    st.markdown("<div class='title-container'><div><h1 class='title-text'>📚 Saswata’s Library</h1><p class='subtitle'>A Clean & Cinematic Modern Book Library</p></div></div>", unsafe_allow_html=True)
+
+# --------- LOAD DATA ---------
+EXCEL_PATH = "Book_Database.xlsx"
 COVER_FOLDER = "covers"
 
 @st.cache_data
-def load_data():
-    return pd.read_excel(EXCEL_FILE)
+def load_data(path):
+    return pd.read_excel(path)
 
-df = load_data()
+df = load_data(EXCEL_PATH)
 
-# ---------- Sidebar Filters ----------
-with st.sidebar:
-    st.header("🔍 Filter Books")
+# Fill NaNs to avoid key errors
+df.fillna("", inplace=True)
 
-    book_name = st.text_input("Book Name")
-    original_name = st.text_input("Original Language Name")
-    author = st.text_input("Author")
-    publisher = st.text_input("Publisher")
-    min_price = st.number_input("Min Price", min_value=0, value=0)
-    max_price = st.number_input("Max Price", min_value=0, value=10000)
-    format_choice = st.multiselect("Format", df["Format"].dropna().unique())
-    genre_choice = st.multiselect("Genre", df["Genre"].dropna().unique())
-    fiction_choice = st.multiselect("Fiction / Non-Fiction", df["Fiction / Non-Fiction"].dropna().unique())
+# --------- SEARCH & FILTER ---------
+st.divider()
+st.subheader("🔍 Search & Filter Books")
 
-# ---------- Filter Logic ----------
+col1, col2, col3, col4 = st.columns(4)
+
+name_query = col1.text_input("Book Name or Author")
+genre_filter = col2.selectbox("Filter by Genre", ["All"] + sorted(df['Genre'].unique()))
+format_filter = col3.selectbox("Format", ["All"] + sorted(df['Format'].unique()))
+fiction_filter = col4.selectbox("Fiction / Non-Fiction", ["All"] + sorted(df['Fiction / Non-Fiction'].unique()))
+
+# Filter logic
 filtered_df = df.copy()
 
-if book_name:
-    filtered_df = filtered_df[filtered_df["Book Name"].str.contains(book_name, case=False, na=False)]
-if original_name:
-    filtered_df = filtered_df[filtered_df["Book Name (Original Language)"].str.contains(original_name, case=False, na=False)]
-if author:
-    filtered_df = filtered_df[filtered_df["Author"].str.contains(author, case=False, na=False)]
-if publisher:
-    filtered_df = filtered_df[filtered_df["Publisher"].str.contains(publisher, case=False, na=False)]
+if name_query:
+    name_query_lower = name_query.lower()
+    filtered_df = filtered_df[
+        filtered_df['Book Name'].str.lower().str.contains(name_query_lower) |
+        filtered_df['Author'].str.lower().str.contains(name_query_lower)
+    ]
 
-filtered_df = filtered_df[(filtered_df["Price"] >= min_price) & (filtered_df["Price"] <= max_price)]
+if genre_filter != "All":
+    filtered_df = filtered_df[filtered_df['Genre'] == genre_filter]
 
-if format_choice:
-    filtered_df = filtered_df[filtered_df["Format"].isin(format_choice)]
-if genre_choice:
-    filtered_df = filtered_df[filtered_df["Genre"].isin(genre_choice)]
-if fiction_choice:
-    filtered_df = filtered_df[filtered_df["Fiction / Non-Fiction"].isin(fiction_choice)]
+if format_filter != "All":
+    filtered_df = filtered_df[filtered_df['Format'] == format_filter]
 
-# ---------- Display Helper ----------
-def display_image(path, caption):
-    if Path(path).is_file():
-        st.image(path, caption=caption, width=150)
-    else:
-        st.markdown(f"**{caption}:** ❌ Not Found")
+if fiction_filter != "All":
+    filtered_df = filtered_df[filtered_df['Fiction / Non-Fiction'] == fiction_filter]
 
-# ---------- Display Results ----------
+# --------- DISPLAY BOOKS ---------
+st.divider()
+st.subheader("📘 Book Listings")
+
 if filtered_df.empty:
-    st.warning("No books found with selected criteria.")
+    st.warning("No books found with the current filters.")
 else:
-    for _, row in filtered_df.iterrows():
+    for i, row in filtered_df.iterrows():
         with st.container():
-            cols = st.columns([1, 2, 2])
+            cols = st.columns([1, 3])
+            # Front cover image
+            cover_path = os.path.join(COVER_FOLDER, str(row['Front Cover']))
+            if row['Front Cover'] and os.path.exists(cover_path):
+                cols[0].image(cover_path, width=150)
+            else:
+                cols[0].image("https://via.placeholder.com/150x220?text=No+Cover", width=150)
 
-            # Front Cover
-            front_img = Path(COVER_FOLDER) / str(row['Front Cover']) if pd.notna(row['Front Cover']) else None
-            display_image(front_img, "Front Cover")
+            # Book details
+            with cols[1]:
+                st.markdown(f"### {row['Book Name']}")
+                st.markdown(f"**Original Name:** {row.get('Book Name (Original Language)', 'N/A')}")
+                st.markdown(f"**Author:** {row['Author']} &nbsp;&nbsp; | &nbsp;&nbsp; **Publisher:** {row['Publisher']}")
+                st.markdown(f"**Genre:** {row['Genre']} | **Format:** {row['Format']} | **Price:** ₹{row['Price']}")
+                st.markdown(f"**Fiction / Non-Fiction:** {row['Fiction / Non-Fiction']}")
+                if row['Back Cover']:
+                    back_path = os.path.join(COVER_FOLDER, str(row['Back Cover']))
+                    if os.path.exists(back_path):
+                        st.markdown(f"🖼️ *Back cover available*")
 
-            # Book Info
-            cols[1].markdown(f"### {row['Book Name']}")
-            cols[1].markdown(f"**Original Name:** {row['Book Name (Original Language)']}")
-            cols[1].markdown(f"**Author:** {row['Author']}")
-            cols[1].markdown(f"**Publisher:** {row['Publisher']}")
-            cols[1].markdown(f"**Price:** ₹{row['Price']}")
-            cols[1].markdown(f"**Format:** {row['Format']}")
-            cols[1].markdown(f"**Fiction / Non-Fiction:** {row['Fiction / Non-Fiction']}")
-            cols[1].markdown(f"**Genre:** {row['Genre']}")
-
-            # Back Cover
-            back_img = Path(COVER_FOLDER) / str(row['Back Cover']) if pd.notna(row['Back Cover']) else None
-            display_image(back_img, "Back Cover")
-
-            st.markdown("---")
+# Optional genre count
+if st.checkbox("📊 Show Genre Stats"):
+    genre_stats = df['Genre'].value_counts()
+    st.bar_chart(genre_stats)
