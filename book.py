@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 
 # ---------- Config ----------
-st.set_page_config(page_title="📚 My Book Library", layout="wide")
+st.set_page_config(page_title="📚 Saswata's Library", layout="wide")
 st.title("📚 My Book Library")
 
 # ---------- Load Excel ----------
