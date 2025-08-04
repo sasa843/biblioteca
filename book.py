@@ -4,7 +4,7 @@ from pathlib import Path
 
 # ---------- Config ----------
 st.set_page_config(page_title="📚 Saswata's Library", layout="wide")
-st.title("📚 My Book Library")
+st.title("📚 Saswata's Library")
 
 # ---------- Load Excel ----------
 EXCEL_FILE = "Book_Database_With_Samples_And_Format.xlsx"
