@@ -85,7 +85,7 @@ for idx, row in filtered_df.iterrows():
         cols[1].markdown(f"**📚 Type:** {row['Fiction / Non-Fiction']}")
         cols[1].markdown(f"**💰 Price:** ₹{row['Price']}")
         cols[1].markdown(f"**📦 Format:** {row['Format']}")
-        cols[1].markdown(f"**🗒️ Notes:** {row['Note']}")
+        #cols[1].markdown(f"**🗒️ Notes:** {row['Note']}")
 
         # Covers (if exists)
         def show_image(col, image_path, label):
