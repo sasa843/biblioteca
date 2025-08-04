@@ -7,13 +7,15 @@ import os
 st.set_page_config(page_title="Saswata’s Library", layout="wide")
 
 # ---- BACKGROUND IMAGE ----
-def set_background(image_path):
+def set_background(image_path, overlay_color='rgba(255, 255, 255, 0.6)'):
     with open(image_path, "rb") as f:
         b64 = base64.b64encode(f.read()).decode()
     css = f"""
     <style>
     .stApp {{
-        background-image: url("data:image/png;base64,{b64}");
+        background-image: 
+            linear-gradient({overlay_color}, {overlay_color}),
+            url("data:image/png;base64,{b64}");
         background-size: cover;
         background-repeat: no-repeat;
         background-attachment: fixed;
@@ -21,6 +23,7 @@ def set_background(image_path):
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
+
 
 set_background("assets/background.jpg")  # Change path if needed
 
