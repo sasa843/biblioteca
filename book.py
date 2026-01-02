@@ -42,7 +42,6 @@ def set_background(
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-
             .block-container {{
                 padding-top: 2rem;
                 padding-bottom: 2rem;
@@ -181,12 +180,16 @@ filtered_df = filtered_df.sort_values(
 )
 
 # =====================
-# ---- IMAGE HANDLER (FIXED) ----
+# ---- COVER URL HELPERS ----
 # =====================
-def get_isbn_cover_url(isbn):
-    if not isbn:
-        return None
+def openlibrary_cover(isbn):
     return f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
+
+def google_books_cover(isbn):
+    return (
+        "https://books.google.com/books/content"
+        f"?vid=ISBN{isbn}&printsec=frontcover&img=1&zoom=1"
+    )
 
 def show_image(col, local_path, label, isbn):
     placeholder = "assets/no_cover.png"
@@ -196,15 +199,27 @@ def show_image(col, local_path, label, isbn):
         col.image(local_path, width=120, caption=label)
         return
 
-    # 2️⃣ ISBN image (browser loads it)
-    isbn_url = get_isbn_cover_url(isbn)
-    if isbn_url:
-        col.image(isbn_url, width=120, caption=f"{label} (ISBN)")
+    # 2️⃣ Open Library
+    if isbn:
+        col.image(
+            openlibrary_cover(isbn),
+            width=120,
+            caption=f"{label} (Open Library)"
+        )
         return
 
-    # 3️⃣ Placeholder
+    # 3️⃣ Google Books fallback
+    if isbn:
+        col.image(
+            google_books_cover(isbn),
+            width=120,
+            caption=f"{label} (Google Books)"
+        )
+        return
+
+    # 4️⃣ Placeholder
     if os.path.exists(placeholder):
-        col.image(placeholder, width=120, caption=f"{label} (Not Available)")
+        col.image(placeholder, width=120, caption="Not Available")
     else:
         col.markdown(f"**{label}:** _Not Available_")
 
@@ -217,6 +232,7 @@ for _, row in filtered_df.iterrows():
     with st.container():
         cols = st.columns([2, 2, 2, 2])
 
+        # --- Book Info ---
         cols[0].markdown(f"**📕 Title:** {row['Book Name']}")
 
         orig = str(row.get("Book Name (Original Language)", "")).strip()
@@ -227,6 +243,7 @@ for _, row in filtered_df.iterrows():
         cols[0].markdown(f"**🏷 Genre:** {row['Genre']}")
         cols[0].markdown(f"**🏢 Publisher:** {row['Publisher']}")
 
+        # --- Details ---
         cols[1].markdown(f"**📚 Type:** {row['Fiction / Non-Fiction']}")
         cols[1].markdown(f"**📦 Format:** {row['Format']}")
         cols[1].markdown(f"**💰 Price:** ₹{int(row['Price'])}")
