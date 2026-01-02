@@ -44,8 +44,34 @@ def load_data(path):
     return pd.read_excel(path).fillna("")
 
 df = load_data("Book_Database.xlsx")
-df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0)
-df["ISBN"] = df["ISBN"].astype(str).str.replace(r"[^0-9Xx]", "", regex=True)
+
+# =====================
+# NORMALIZE ISBN COLUMN (SAFE)
+# =====================
+isbn_column = None
+
+for col in df.columns:
+    clean = col.strip().lower().replace("-", "").replace(" ", "")
+    if clean in ["isbn", "isbn13", "isbn10"]:
+        isbn_column = col
+        break
+
+if isbn_column is None:
+    df["ISBN"] = ""
+else:
+    df["ISBN"] = (
+        df[isbn_column]
+        .astype(str)
+        .str.replace(r"[^0-9Xx]", "", regex=True)
+    )
+
+# =====================
+# NORMALIZE PRICE
+# =====================
+if "Price" in df.columns:
+    df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0)
+else:
+    df["Price"] = 0
 
 # =====================
 # HEADER
@@ -78,11 +104,13 @@ filtered_df = df.copy()
 def contains(series, value):
     return series.astype(str).str.contains(value, case=False, na=False)
 
-if title_q:
+if "Book Name" in filtered_df.columns and title_q:
     filtered_df = filtered_df[contains(filtered_df["Book Name"], title_q)]
-if author_q:
+
+if "Author" in filtered_df.columns and author_q:
     filtered_df = filtered_df[contains(filtered_df["Author"], author_q)]
-if genre_q:
+
+if "Genre" in filtered_df.columns and genre_q:
     filtered_df = filtered_df[contains(filtered_df["Genre"], genre_q)]
 
 filtered_df = filtered_df.sort_values(
@@ -91,7 +119,7 @@ filtered_df = filtered_df.sort_values(
 )
 
 # =====================
-# COVER RESOLUTION
+# COVER RESOLUTION (LOCAL ONLY)
 # =====================
 def get_cover_path(isbn):
     if isbn:
@@ -136,7 +164,7 @@ st.markdown(
 st.write(f"### 📖 Found {len(filtered_df)} Book(s)")
 
 cols_per_row = 4
-rows = [filtered_df[i:i+cols_per_row] for i in range(0, len(filtered_df), cols_per_row)]
+rows = [filtered_df[i:i + cols_per_row] for i in range(0, len(filtered_df), cols_per_row)]
 
 for row in rows:
     cols = st.columns(cols_per_row)
@@ -144,14 +172,20 @@ for row in rows:
         with col:
             st.markdown('<div class="book-card">', unsafe_allow_html=True)
 
-            cover = get_cover_path(book["ISBN"])
+            cover = get_cover_path(book.get("ISBN", ""))
             st.image(cover, use_column_width=True)
 
-            st.markdown(f'<div class="title">📕 {book["Book Name"]}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="meta">✍️ {book["Author"]}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="meta">🏷 {book["Genre"]}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="meta">🏢 {book["Publisher"]}</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="meta">📦 {book["Format"]}</div>', unsafe_allow_html=True)
+            if "Book Name" in book:
+                st.markdown(f'<div class="title">📕 {book["Book Name"]}</div>', unsafe_allow_html=True)
+            if "Author" in book:
+                st.markdown(f'<div class="meta">✍️ {book["Author"]}</div>', unsafe_allow_html=True)
+            if "Genre" in book:
+                st.markdown(f'<div class="meta">🏷 {book["Genre"]}</div>', unsafe_allow_html=True)
+            if "Publisher" in book:
+                st.markdown(f'<div class="meta">🏢 {book["Publisher"]}</div>', unsafe_allow_html=True)
+            if "Format" in book:
+                st.markdown(f'<div class="meta">📦 {book["Format"]}</div>', unsafe_allow_html=True)
+
             st.markdown(f'<div class="meta">💰 ₹{int(book["Price"])}</div>', unsafe_allow_html=True)
 
             st.markdown('</div>', unsafe_allow_html=True)
