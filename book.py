@@ -4,7 +4,7 @@ import base64
 import os
 
 # =====================
-# ---- CONFIG ----
+# CONFIG
 # =====================
 st.set_page_config(
     page_title="Saswata’s Library",
@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # =====================
-# ---- BACKGROUND ----
+# BACKGROUND
 # =====================
 def set_background(image_path):
     if os.path.exists(image_path):
@@ -37,25 +37,25 @@ def set_background(image_path):
 set_background("assets/background.jpg")
 
 # =====================
-# ---- LOAD DATA ----
+# LOAD DATA
 # =====================
 @st.cache_data
 def load_data(path):
     return pd.read_excel(path).fillna("")
 
 df = load_data("Book_Database.xlsx")
-
-df["Price"] = pd.to_numeric(df.get("Price", 0), errors="coerce").fillna(0)
+df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0)
+df["ISBN"] = df["ISBN"].astype(str).str.replace(r"[^0-9Xx]", "", regex=True)
 
 # =====================
-# ---- HEADER ----
+# HEADER
 # =====================
 st.markdown("<h1 style='text-align:center;'>📚 Saswata’s Library</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>A simple, visual book catalog</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Personal Book Collection</p>", unsafe_allow_html=True)
 st.write("---")
 
 # =====================
-# ---- FILTERS ----
+# FILTERS
 # =====================
 with st.expander("🔍 Search & Filters", expanded=True):
     c1, c2, c3 = st.columns(3)
@@ -64,28 +64,19 @@ with st.expander("🔍 Search & Filters", expanded=True):
     genre_q = c3.text_input("Genre")
 
 # =====================
-# ---- SORTING ----
+# SORTING
 # =====================
 s1, s2 = st.columns([3, 1])
-
-sort_by = s1.selectbox(
-    "Sort by",
-    ["Book Name", "Author", "Price"]
-)
-
-sort_order = s2.radio(
-    "Order",
-    ["Ascending", "Descending"],
-    horizontal=True
-)
+sort_by = s1.selectbox("Sort by", ["Book Name", "Author", "Price"])
+sort_order = s2.radio("Order", ["Ascending", "Descending"], horizontal=True)
 
 # =====================
-# ---- APPLY FILTERS ----
+# APPLY FILTERS
 # =====================
 filtered_df = df.copy()
 
-def contains(series, val):
-    return series.astype(str).str.contains(val, case=False, na=False)
+def contains(series, value):
+    return series.astype(str).str.contains(value, case=False, na=False)
 
 if title_q:
     filtered_df = filtered_df[contains(filtered_df["Book Name"], title_q)]
@@ -100,31 +91,34 @@ filtered_df = filtered_df.sort_values(
 )
 
 # =====================
-# ---- CARD STYLES ----
+# COVER RESOLUTION
+# =====================
+def get_cover_path(isbn):
+    if isbn:
+        png = f"covers/{isbn}.png"
+        jpg = f"covers/{isbn}.jpg"
+        if os.path.exists(png):
+            return png
+        if os.path.exists(jpg):
+            return jpg
+    return "covers/no_cover.png"
+
+# =====================
+# CARD STYLES
 # =====================
 st.markdown(
     """
     <style>
     .book-card {
         background: white;
-        border-radius: 12px;
+        border-radius: 14px;
         padding: 16px;
-        height: 100%;
         box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-    }
-    .cover-box {
-        height: 180px;
-        border-radius: 8px;
-        background: #f2f2f2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #999;
-        font-size: 14px;
-        margin-bottom: 12px;
+        height: 100%;
     }
     .title {
         font-weight: 700;
+        margin-top: 10px;
         margin-bottom: 6px;
     }
     .meta {
@@ -137,7 +131,7 @@ st.markdown(
 )
 
 # =====================
-# ---- DISPLAY GRID ----
+# DISPLAY GRID
 # =====================
 st.write(f"### 📖 Found {len(filtered_df)} Book(s)")
 
@@ -148,19 +142,16 @@ for row in rows:
     cols = st.columns(cols_per_row)
     for col, (_, book) in zip(cols, row.iterrows()):
         with col:
-            st.markdown(
-                f"""
-                <div class="book-card">
-                    <div class="cover-box">
-                        No Cover
-                    </div>
-                    <div class="title">📕 {book['Book Name']}</div>
-                    <div class="meta">✍️ {book['Author']}</div>
-                    <div class="meta">🏷 {book['Genre']}</div>
-                    <div class="meta">🏢 {book['Publisher']}</div>
-                    <div class="meta">📦 {book['Format']}</div>
-                    <div class="meta">💰 ₹{int(book['Price'])}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            st.markdown('<div class="book-card">', unsafe_allow_html=True)
+
+            cover = get_cover_path(book["ISBN"])
+            st.image(cover, use_column_width=True)
+
+            st.markdown(f'<div class="title">📕 {book["Book Name"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="meta">✍️ {book["Author"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="meta">🏷 {book["Genre"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="meta">🏢 {book["Publisher"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="meta">📦 {book["Format"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="meta">💰 ₹{int(book["Price"])}</div>', unsafe_allow_html=True)
+
+            st.markdown('</div>', unsafe_allow_html=True)
