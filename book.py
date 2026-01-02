@@ -55,22 +55,19 @@ for col in df.columns:
         isbn_column = col
         break
 
-if isbn_column is None:
-    df["ISBN"] = ""
-else:
+if isbn_column:
     df["ISBN"] = (
         df[isbn_column]
         .astype(str)
         .str.replace(r"[^0-9Xx]", "", regex=True)
     )
+else:
+    df["ISBN"] = ""
 
 # =====================
 # NORMALIZE PRICE
 # =====================
-if "Price" in df.columns:
-    df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0)
-else:
-    df["Price"] = 0
+df["Price"] = pd.to_numeric(df.get("Price", 0), errors="coerce").fillna(0)
 
 # =====================
 # HEADER
@@ -91,8 +88,10 @@ with st.expander("🔍 Search & Filters", expanded=True):
 # =====================
 # SORTING
 # =====================
+valid_sort_columns = [c for c in ["Book Name", "Author", "Price"] if c in df.columns]
+
 s1, s2 = st.columns([3, 1])
-sort_by = s1.selectbox("Sort by", ["Book Name", "Author", "Price"])
+sort_by = s1.selectbox("Sort by", valid_sort_columns)
 sort_order = s2.radio("Order", ["Ascending", "Descending"], horizontal=True)
 
 # =====================
@@ -118,17 +117,20 @@ filtered_df = filtered_df.sort_values(
 )
 
 # =====================
-# COVER RESOLUTION
+# COVER HANDLING (BASE64)
 # =====================
-def get_cover_path(isbn):
+def get_cover_base64(isbn):
+    paths = []
     if isbn:
-        png = f"covers/{isbn}.png"
-        jpg = f"covers/{isbn}.jpg"
-        if os.path.exists(png):
-            return png
-        if os.path.exists(jpg):
-            return jpg
-    return "covers/no_cover.png"
+        paths += [f"covers/{isbn}.png", f"covers/{isbn}.jpg"]
+    paths.append("covers/no_cover.png")
+
+    for path in paths:
+        if os.path.exists(path):
+            with open(path, "rb") as f:
+                return base64.b64encode(f.read()).decode()
+
+    return None
 
 # =====================
 # CARD STYLES
@@ -171,43 +173,35 @@ st.markdown(
 # =====================
 st.write(f"### 📖 Found {len(filtered_df)} Book(s)")
 
-cols_per_row = 4
-rows = [filtered_df[i:i + cols_per_row] for i in range(0, len(filtered_df), cols_per_row)]
+if filtered_df.empty:
+    st.info("No books match your filters.")
+else:
+    cols_per_row = 4
+    rows = [filtered_df[i:i + cols_per_row] for i in range(0, len(filtered_df), cols_per_row)]
 
-for row in rows:
-    cols = st.columns(cols_per_row)
-    for col, (_, book) in zip(cols, row.iterrows()):
-        with col:
-            st.markdown('<div class="book-card">', unsafe_allow_html=True)
+    for row in rows:
+        cols = st.columns(cols_per_row)
+        for col, (_, book) in zip(cols, row.iterrows()):
+            with col:
+                st.markdown('<div class="book-card">', unsafe_allow_html=True)
 
-            cover = get_cover_path(book.get("ISBN", ""))
+                cover_b64 = get_cover_base64(book.get("ISBN", ""))
 
-            # COVER (HTML, NO TOOLBAR, FIXED SIZE)
-            st.markdown(
-                f"""
-                <div class="cover-box">
-                    <img src="{cover}"
-                         style="
-                            max-height: 220px;
-                            max-width: 100%;
-                            object-fit: contain;
-                         ">
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+                st.markdown(
+                    f"""
+                    <div class="cover-box">
+                        <img src="data:image/png;base64,{cover_b64}"
+                             style="max-height:220px; max-width:100%; object-fit:contain;">
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            if "Book Name" in book:
-                st.markdown(f'<div class="title">📕 {book["Book Name"]}</div>', unsafe_allow_html=True)
-            if "Author" in book:
-                st.markdown(f'<div class="meta">✍️ {book["Author"]}</div>', unsafe_allow_html=True)
-            if "Genre" in book:
-                st.markdown(f'<div class="meta">🏷 {book["Genre"]}</div>', unsafe_allow_html=True)
-            if "Publisher" in book:
-                st.markdown(f'<div class="meta">🏢 {book["Publisher"]}</div>', unsafe_allow_html=True)
-            if "Format" in book:
-                st.markdown(f'<div class="meta">📦 {book["Format"]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="title">📕 {book.get("Book Name","")}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="meta">✍️ {book.get("Author","")}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="meta">🏷 {book.get("Genre","")}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="meta">🏢 {book.get("Publisher","")}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="meta">📦 {book.get("Format","")}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="meta">💰 ₹{int(book["Price"])}</div>', unsafe_allow_html=True)
 
-            st.markdown(f'<div class="meta">💰 ₹{int(book["Price"])}</div>', unsafe_allow_html=True)
-
-            st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
