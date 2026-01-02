@@ -82,15 +82,8 @@ def load_data(path):
 
 df = load_data("Book_Database.xlsx")
 
-# Normalize price
 df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0)
-
-# Clean ISBN (digits only)
-df["ISBN"] = (
-    df["ISBN"]
-    .astype(str)
-    .str.replace(r"[^0-9Xx]", "", regex=True)
-)
+df["ISBN"] = df["ISBN"].astype(str).str.replace(r"[^0-9Xx]", "", regex=True)
 
 # =====================
 # ---- HEADER ----
@@ -119,15 +112,10 @@ with st.expander("🔍 Search & Filters", expanded=True):
     min_price = int(df["Price"].min())
     max_price = int(df["Price"].max())
 
-    price_range = st.slider(
-        "💰 Price Range (₹)",
-        min_price,
-        max_price,
-        (min_price, max_price)
-    )
+    price_range = st.slider("💰 Price Range (₹)", min_price, max_price, (min_price, max_price))
 
 # =====================
-# ---- SORTING ----
+# ---- SORTING (FIXED)
 # =====================
 st.write("### 🔀 Sort Options")
 
@@ -139,6 +127,7 @@ sort_by = s1.selectbox(
 )
 
 sort_order = s2.radio(
+    "Order",
     ["Ascending", "Descending"],
     horizontal=True
 )
@@ -153,66 +142,40 @@ def contains_ci(series, text):
 
 if book_name:
     filtered_df = filtered_df[contains_ci(filtered_df["Book Name"], book_name)]
-
 if author:
     filtered_df = filtered_df[contains_ci(filtered_df["Author"], author)]
-
 if genre:
     filtered_df = filtered_df[contains_ci(filtered_df["Genre"], genre)]
-
 if publisher:
     filtered_df = filtered_df[contains_ci(filtered_df["Publisher"], publisher)]
-
 if fiction_type != "All":
     filtered_df = filtered_df[filtered_df["Fiction / Non-Fiction"] == fiction_type]
-
 if format_type != "All":
     filtered_df = filtered_df[filtered_df["Format"] == format_type]
 
-filtered_df = filtered_df[
-    filtered_df["Price"].between(price_range[0], price_range[1])
-]
-
-filtered_df = filtered_df.sort_values(
-    by=sort_by,
-    ascending=(sort_order == "Ascending")
-)
+filtered_df = filtered_df[filtered_df["Price"].between(price_range[0], price_range[1])]
+filtered_df = filtered_df.sort_values(sort_by, ascending=(sort_order == "Ascending"))
 
 # =====================
-# ---- IMAGE DISPLAY (FIXED WITH HTML FALLBACK)
+# ---- IMAGE DISPLAY (HTML FALLBACK)
 # =====================
 def show_image(col, local_path, label, isbn):
-    placeholder = "assets/no_cover.png"
-
-    # 1️⃣ Local image
     if local_path and os.path.exists(local_path):
         col.image(local_path, width=120, caption=label)
         return
 
     if not isbn:
-        if os.path.exists(placeholder):
-            col.image(placeholder, width=120, caption="Not Available")
+        col.image("assets/no_cover.png", width=120, caption="Not Available")
         return
 
     openlib = f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
-    google = (
-        "https://books.google.com/books/content"
-        f"?vid=ISBN{isbn}&printsec=frontcover&img=1&zoom=1"
-    )
+    google = f"https://books.google.com/books/content?vid=ISBN{isbn}&printsec=frontcover&img=1&zoom=1"
 
     col.markdown(
         f"""
-        <img src="{openlib}"
-             width="120"
-             onerror="
-                this.onerror=null;
-                this.src='{google}';
-             "
-             style="display:block; margin-bottom:4px;"
-        />
-        <div style="font-size:12px; text-align:center;">
-            {label}
-        </div>
+        <img src="{openlib}" width="120"
+             onerror="this.onerror=null;this.src='{google}';" />
+        <div style="font-size:12px;text-align:center;">{label}</div>
         """,
         unsafe_allow_html=True
     )
@@ -223,34 +186,18 @@ def show_image(col, local_path, label, isbn):
 st.write(f"### 📖 Found {len(filtered_df)} Book(s)")
 
 for _, row in filtered_df.iterrows():
-    with st.container():
-        cols = st.columns([2, 2, 2, 2])
+    cols = st.columns([2, 2, 2, 2])
 
-        cols[0].markdown(f"**📕 Title:** {row['Book Name']}")
+    cols[0].markdown(f"**📕 Title:** {row['Book Name']}")
+    cols[0].markdown(f"**✍️ Author:** {row['Author']}")
+    cols[0].markdown(f"**🏷 Genre:** {row['Genre']}")
+    cols[0].markdown(f"**🏢 Publisher:** {row['Publisher']}")
 
-        orig = str(row.get("Book Name (Original Language)", "")).strip()
-        if orig and orig != row["Book Name"]:
-            cols[0].markdown(f"**🌍 Original:** {orig}")
+    cols[1].markdown(f"**📚 Type:** {row['Fiction / Non-Fiction']}")
+    cols[1].markdown(f"**📦 Format:** {row['Format']}")
+    cols[1].markdown(f"**💰 Price:** ₹{int(row['Price'])}")
 
-        cols[0].markdown(f"**✍️ Author:** {row['Author']}")
-        cols[0].markdown(f"**🏷 Genre:** {row['Genre']}")
-        cols[0].markdown(f"**🏢 Publisher:** {row['Publisher']}")
-
-        cols[1].markdown(f"**📚 Type:** {row['Fiction / Non-Fiction']}")
-        cols[1].markdown(f"**📦 Format:** {row['Format']}")
-        cols[1].markdown(f"**💰 Price:** ₹{int(row['Price'])}")
-
-        isbn = str(row.get("ISBN", "")).strip()
-
-        front = str(row.get("Front Cover", "")).strip()
-        back = str(row.get("Back Cover", "")).strip()
-
-        if front.lower() == "insert image":
-            front = ""
-        if back.lower() == "insert image":
-            back = ""
-
-        show_image(cols[2], f"covers/{front}" if front else "", "Front Cover", isbn)
-        show_image(cols[3], f"covers/{back}" if back else "", "Back Cover", isbn)
+    show_image(cols[2], "", "Front Cover", row["ISBN"])
+    show_image(cols[3], "", "Back Cover", row["ISBN"])
 
     st.markdown("---")
