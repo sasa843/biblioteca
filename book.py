@@ -12,21 +12,13 @@ st.set_page_config(
 )
 
 # =====================
-# ---- THEME-AWARE BACKGROUND ----
+# ---- BACKGROUND ----
 # =====================
 def set_background(
     image_path,
     overlay_light="rgba(255,255,255,0.60)",
     overlay_dark="rgba(0,0,0,0.45)"
 ):
-    theme_type = "light"
-    try:
-        theme_type = getattr(getattr(st, "context", None), "theme", {}).get("type", "light")
-    except Exception:
-        pass
-
-    overlay = overlay_dark if theme_type == "dark" else overlay_light
-
     if os.path.exists(image_path):
         with open(image_path, "rb") as f:
             b64 = base64.b64encode(f.read()).decode()
@@ -36,15 +28,10 @@ def set_background(
             <style>
             .stApp {{
                 background-image:
-                    linear-gradient({overlay}, {overlay}),
+                    linear-gradient({overlay_light}, {overlay_light}),
                     url("data:image/png;base64,{b64}");
                 background-size: cover;
-                background-repeat: no-repeat;
                 background-attachment: fixed;
-            }}
-            .block-container {{
-                padding-top: 2rem;
-                padding-bottom: 2rem;
             }}
             </style>
             """,
@@ -59,25 +46,8 @@ set_background("assets/background.jpg")
 @st.cache_data
 def load_data(path):
     df = pd.read_excel(path).fillna("")
-
-    required = [
-        "Book Name",
-        "Book Name (Original Language)",
-        "Author",
-        "Publisher",
-        "Price",
-        "Fiction / Non-Fiction",
-        "Genre",
-        "Format",
-        "ISBN",
-        "Front Cover",
-        "Back Cover"
-    ]
-
-    for col in required:
-        if col not in df.columns:
-            df[col] = ""
-
+    if "ISBN" not in df.columns:
+        df["ISBN"] = ""
     return df
 
 df = load_data("Book_Database.xlsx")
@@ -89,44 +59,29 @@ df["ISBN"] = df["ISBN"].astype(str).str.replace(r"[^0-9Xx]", "", regex=True)
 # ---- HEADER ----
 # =====================
 st.markdown("<h1 style='text-align:center;'>📚 Saswata’s Library</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>A Clean, Cinematic, Modern Book Catalog</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Simple. Clean. Personal.</p>", unsafe_allow_html=True)
 st.write("---")
 
 # =====================
 # ---- FILTERS ----
 # =====================
 with st.expander("🔍 Search & Filters", expanded=True):
-    c1, c2, c3, c4 = st.columns(4)
-
+    c1, c2, c3 = st.columns(3)
     book_name = c1.text_input("Book Name")
     author = c2.text_input("Author")
     genre = c3.text_input("Genre")
-    publisher = c4.text_input("Publisher")
-
-    fiction_vals = sorted({v for v in df["Fiction / Non-Fiction"].astype(str) if v})
-    format_vals = sorted({v for v in df["Format"].astype(str) if v})
-
-    fiction_type = st.selectbox("Fiction / Non-Fiction", ["All"] + fiction_vals)
-    format_type = st.selectbox("Format", ["All"] + format_vals)
-
-    min_price = int(df["Price"].min())
-    max_price = int(df["Price"].max())
-
-    price_range = st.slider("💰 Price Range (₹)", min_price, max_price, (min_price, max_price))
 
 # =====================
-# ---- SORTING (FIXED)
+# ---- SORTING ----
 # =====================
-st.write("### 🔀 Sort Options")
+sort_by, order = st.columns([3, 1])
 
-s1, s2 = st.columns([3, 1])
-
-sort_by = s1.selectbox(
+sort_col = sort_by.selectbox(
     "Sort by",
-    ["Book Name", "Author", "Genre", "Price"]
+    ["Book Name", "Author", "Price"]
 )
 
-sort_order = s2.radio(
+sort_order = order.radio(
     "Order",
     ["Ascending", "Descending"],
     horizontal=True
@@ -137,67 +92,62 @@ sort_order = s2.radio(
 # =====================
 filtered_df = df.copy()
 
-def contains_ci(series, text):
-    return series.astype(str).str.contains(text, case=False, na=False)
+def contains(series, value):
+    return series.astype(str).str.contains(value, case=False, na=False)
 
 if book_name:
-    filtered_df = filtered_df[contains_ci(filtered_df["Book Name"], book_name)]
+    filtered_df = filtered_df[contains(filtered_df["Book Name"], book_name)]
 if author:
-    filtered_df = filtered_df[contains_ci(filtered_df["Author"], author)]
+    filtered_df = filtered_df[contains(filtered_df["Author"], author)]
 if genre:
-    filtered_df = filtered_df[contains_ci(filtered_df["Genre"], genre)]
-if publisher:
-    filtered_df = filtered_df[contains_ci(filtered_df["Publisher"], publisher)]
-if fiction_type != "All":
-    filtered_df = filtered_df[filtered_df["Fiction / Non-Fiction"] == fiction_type]
-if format_type != "All":
-    filtered_df = filtered_df[filtered_df["Format"] == format_type]
+    filtered_df = filtered_df[contains(filtered_df["Genre"], genre)]
 
-filtered_df = filtered_df[filtered_df["Price"].between(price_range[0], price_range[1])]
-filtered_df = filtered_df.sort_values(sort_by, ascending=(sort_order == "Ascending"))
+filtered_df = filtered_df.sort_values(
+    sort_col,
+    ascending=(sort_order == "Ascending")
+)
 
 # =====================
-# ---- IMAGE DISPLAY (HTML FALLBACK)
+# ---- COVER DISPLAY (GOOGLE BOOKS ONLY)
 # =====================
-def show_image(col, local_path, label, isbn):
-    if local_path and os.path.exists(local_path):
-        col.image(local_path, width=120, caption=label)
-        return
-
+def show_cover(col, isbn):
     if not isbn:
-        col.image("assets/no_cover.png", width=120, caption="Not Available")
+        col.markdown("**No Cover**")
         return
 
-    openlib = f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
-    google = f"https://books.google.com/books/content?vid=ISBN{isbn}&printsec=frontcover&img=1&zoom=1"
+    google_thumb = (
+        "https://books.google.com/books/content"
+        f"?vid=ISBN{isbn}&printsec=frontcover&img=1&zoom=0"
+    )
 
     col.markdown(
         f"""
-        <img src="{openlib}" width="120"
-             onerror="this.onerror=null;this.src='{google}';" />
-        <div style="font-size:12px;text-align:center;">{label}</div>
+        <img src="{google_thumb}"
+             width="120"
+             style="display:block; margin:auto;" />
         """,
         unsafe_allow_html=True
     )
 
 # =====================
-# ---- DISPLAY RESULTS ----
+# ---- DISPLAY BOOKS ----
 # =====================
 st.write(f"### 📖 Found {len(filtered_df)} Book(s)")
 
 for _, row in filtered_df.iterrows():
-    cols = st.columns([2, 2, 2, 2])
+    with st.container():
+        cols = st.columns([3, 2, 1])
 
-    cols[0].markdown(f"**📕 Title:** {row['Book Name']}")
-    cols[0].markdown(f"**✍️ Author:** {row['Author']}")
-    cols[0].markdown(f"**🏷 Genre:** {row['Genre']}")
-    cols[0].markdown(f"**🏢 Publisher:** {row['Publisher']}")
+        # Book info
+        cols[0].markdown(f"**📕 Title:** {row['Book Name']}")
+        cols[0].markdown(f"**✍️ Author:** {row['Author']}")
+        cols[0].markdown(f"**🏷 Genre:** {row['Genre']}")
+        cols[0].markdown(f"**🏢 Publisher:** {row['Publisher']}")
 
-    cols[1].markdown(f"**📚 Type:** {row['Fiction / Non-Fiction']}")
-    cols[1].markdown(f"**📦 Format:** {row['Format']}")
-    cols[1].markdown(f"**💰 Price:** ₹{int(row['Price'])}")
+        cols[1].markdown(f"**📦 Format:** {row['Format']}")
+        cols[1].markdown(f"**💰 Price:** ₹{int(row['Price'])}")
 
-    show_image(cols[2], "", "Front Cover", row["ISBN"])
-    show_image(cols[3], "", "Back Cover", row["ISBN"])
+        # Cover
+        show_cover(cols[2], row["ISBN"])
 
     st.markdown("---")
