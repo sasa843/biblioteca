@@ -139,7 +139,6 @@ sort_by = s1.selectbox(
 )
 
 sort_order = s2.radio(
-    "Order",
     ["Ascending", "Descending"],
     horizontal=True
 )
@@ -180,17 +179,8 @@ filtered_df = filtered_df.sort_values(
 )
 
 # =====================
-# ---- COVER URL HELPERS ----
+# ---- IMAGE DISPLAY (FIXED WITH HTML FALLBACK)
 # =====================
-def openlibrary_cover(isbn):
-    return f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
-
-def google_books_cover(isbn):
-    return (
-        "https://books.google.com/books/content"
-        f"?vid=ISBN{isbn}&printsec=frontcover&img=1&zoom=1"
-    )
-
 def show_image(col, local_path, label, isbn):
     placeholder = "assets/no_cover.png"
 
@@ -199,29 +189,33 @@ def show_image(col, local_path, label, isbn):
         col.image(local_path, width=120, caption=label)
         return
 
-    # 2️⃣ Open Library
-    if isbn:
-        col.image(
-            openlibrary_cover(isbn),
-            width=120,
-            caption=f"{label} (Open Library)"
-        )
+    if not isbn:
+        if os.path.exists(placeholder):
+            col.image(placeholder, width=120, caption="Not Available")
         return
 
-    # 3️⃣ Google Books fallback
-    if isbn:
-        col.image(
-            google_books_cover(isbn),
-            width=120,
-            caption=f"{label} (Google Books)"
-        )
-        return
+    openlib = f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
+    google = (
+        "https://books.google.com/books/content"
+        f"?vid=ISBN{isbn}&printsec=frontcover&img=1&zoom=1"
+    )
 
-    # 4️⃣ Placeholder
-    if os.path.exists(placeholder):
-        col.image(placeholder, width=120, caption="Not Available")
-    else:
-        col.markdown(f"**{label}:** _Not Available_")
+    col.markdown(
+        f"""
+        <img src="{openlib}"
+             width="120"
+             onerror="
+                this.onerror=null;
+                this.src='{google}';
+             "
+             style="display:block; margin-bottom:4px;"
+        />
+        <div style="font-size:12px; text-align:center;">
+            {label}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # =====================
 # ---- DISPLAY RESULTS ----
@@ -232,7 +226,6 @@ for _, row in filtered_df.iterrows():
     with st.container():
         cols = st.columns([2, 2, 2, 2])
 
-        # --- Book Info ---
         cols[0].markdown(f"**📕 Title:** {row['Book Name']}")
 
         orig = str(row.get("Book Name (Original Language)", "")).strip()
@@ -243,7 +236,6 @@ for _, row in filtered_df.iterrows():
         cols[0].markdown(f"**🏷 Genre:** {row['Genre']}")
         cols[0].markdown(f"**🏢 Publisher:** {row['Publisher']}")
 
-        # --- Details ---
         cols[1].markdown(f"**📚 Type:** {row['Fiction / Non-Fiction']}")
         cols[1].markdown(f"**📦 Format:** {row['Format']}")
         cols[1].markdown(f"**💰 Price:** ₹{int(row['Price'])}")
