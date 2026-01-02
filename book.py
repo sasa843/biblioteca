@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import base64
 import os
-import requests
 
 # =====================
 # ---- CONFIG ----
@@ -15,10 +14,11 @@ st.set_page_config(
 # =====================
 # ---- THEME-AWARE BACKGROUND ----
 # =====================
-def set_background(image_path,
-                   overlay_light='rgba(255,255,255,0.60)',
-                   overlay_dark='rgba(0,0,0,0.45)'):
-
+def set_background(
+    image_path,
+    overlay_light="rgba(255,255,255,0.60)",
+    overlay_dark="rgba(0,0,0,0.45)"
+):
     theme_type = "light"
     try:
         theme_type = getattr(getattr(st, "context", None), "theme", {}).get("type", "light")
@@ -86,7 +86,7 @@ df = load_data("Book_Database.xlsx")
 # Normalize price
 df["Price"] = pd.to_numeric(df["Price"], errors="coerce").fillna(0)
 
-# Clean ISBN (remove hyphens, spaces, text)
+# Clean ISBN (digits only)
 df["ISBN"] = (
     df["ISBN"]
     .astype(str)
@@ -181,33 +181,28 @@ filtered_df = filtered_df.sort_values(
 )
 
 # =====================
-# ---- ISBN COVER LOOKUP ----
+# ---- IMAGE HANDLER (FIXED) ----
 # =====================
-@st.cache_data(show_spinner=False)
-def get_cover_from_isbn(isbn):
+def get_isbn_cover_url(isbn):
     if not isbn:
         return None
-    url = f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
-    try:
-        r = requests.get(url, timeout=5)
-        if r.status_code == 200 and len(r.content) > 1000:
-            return url
-    except Exception:
-        pass
-    return None
+    return f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
 
 def show_image(col, local_path, label, isbn):
     placeholder = "assets/no_cover.png"
 
+    # 1️⃣ Local image
     if local_path and os.path.exists(local_path):
         col.image(local_path, width=120, caption=label)
         return
 
-    isbn_cover = get_cover_from_isbn(isbn)
-    if isbn_cover:
-        col.image(isbn_cover, width=120, caption=f"{label} (ISBN)")
+    # 2️⃣ ISBN image (browser loads it)
+    isbn_url = get_isbn_cover_url(isbn)
+    if isbn_url:
+        col.image(isbn_url, width=120, caption=f"{label} (ISBN)")
         return
 
+    # 3️⃣ Placeholder
     if os.path.exists(placeholder):
         col.image(placeholder, width=120, caption=f"{label} (Not Available)")
     else:
@@ -222,7 +217,6 @@ for _, row in filtered_df.iterrows():
     with st.container():
         cols = st.columns([2, 2, 2, 2])
 
-        # --- Book info ---
         cols[0].markdown(f"**📕 Title:** {row['Book Name']}")
 
         orig = str(row.get("Book Name (Original Language)", "")).strip()
@@ -233,7 +227,6 @@ for _, row in filtered_df.iterrows():
         cols[0].markdown(f"**🏷 Genre:** {row['Genre']}")
         cols[0].markdown(f"**🏢 Publisher:** {row['Publisher']}")
 
-        # --- Details ---
         cols[1].markdown(f"**📚 Type:** {row['Fiction / Non-Fiction']}")
         cols[1].markdown(f"**📦 Format:** {row['Format']}")
         cols[1].markdown(f"**💰 Price:** ₹{int(row['Price'])}")
