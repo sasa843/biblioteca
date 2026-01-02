@@ -46,10 +46,9 @@ def load_data(path):
 df = load_data("Book_Database.xlsx")
 
 # =====================
-# NORMALIZE ISBN COLUMN (SAFE)
+# NORMALIZE ISBN COLUMN
 # =====================
 isbn_column = None
-
 for col in df.columns:
     clean = col.strip().lower().replace("-", "").replace(" ", "")
     if clean in ["isbn", "isbn13", "isbn10"]:
@@ -104,13 +103,13 @@ filtered_df = df.copy()
 def contains(series, value):
     return series.astype(str).str.contains(value, case=False, na=False)
 
-if "Book Name" in filtered_df.columns and title_q:
+if title_q and "Book Name" in filtered_df.columns:
     filtered_df = filtered_df[contains(filtered_df["Book Name"], title_q)]
 
-if "Author" in filtered_df.columns and author_q:
+if author_q and "Author" in filtered_df.columns:
     filtered_df = filtered_df[contains(filtered_df["Author"], author_q)]
 
-if "Genre" in filtered_df.columns and genre_q:
+if genre_q and "Genre" in filtered_df.columns:
     filtered_df = filtered_df[contains(filtered_df["Genre"], genre_q)]
 
 filtered_df = filtered_df.sort_values(
@@ -119,7 +118,7 @@ filtered_df = filtered_df.sort_values(
 )
 
 # =====================
-# COVER RESOLUTION (LOCAL ONLY)
+# COVER RESOLUTION
 # =====================
 def get_cover_path(isbn):
     if isbn:
@@ -143,6 +142,15 @@ st.markdown(
         padding: 16px;
         box-shadow: 0 6px 18px rgba(0,0,0,0.08);
         height: 100%;
+    }
+    .cover-box {
+        height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 10px;
+        background: #f5f5f5;
     }
     .title {
         font-weight: 700;
@@ -173,7 +181,21 @@ for row in rows:
             st.markdown('<div class="book-card">', unsafe_allow_html=True)
 
             cover = get_cover_path(book.get("ISBN", ""))
-            st.image(cover, use_column_width=True)
+
+            # COVER (HTML, NO TOOLBAR, FIXED SIZE)
+            st.markdown(
+                f"""
+                <div class="cover-box">
+                    <img src="{cover}"
+                         style="
+                            max-height: 220px;
+                            max-width: 100%;
+                            object-fit: contain;
+                         ">
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
             if "Book Name" in book:
                 st.markdown(f'<div class="title">📕 {book["Book Name"]}</div>', unsafe_allow_html=True)
