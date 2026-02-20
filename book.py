@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import pandas as pd
 import base64
 import os
@@ -7,7 +7,7 @@ import os
 # CONFIG
 # =====================
 st.set_page_config(
-    page_title="Saswata’s Library",
+    page_title="Saswata's Library",
     layout="wide"
 )
 
@@ -72,7 +72,7 @@ df["Price"] = pd.to_numeric(df.get("Price", 0), errors="coerce").fillna(0)
 # =====================
 # HEADER
 # =====================
-st.markdown("<h1 style='text-align:center;'>📚 Saswata’s Library</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>📚 Saswata's Library</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align:center;'>Personal Book Collection</p>", unsafe_allow_html=True)
 st.write("---")
 
