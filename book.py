@@ -217,13 +217,25 @@ st.markdown(
         margin: 0;
         background: transparent;
         line-height: 0;
+        display: flex;
+        align-items: stretch;
+        justify-content: stretch;
+    }
+    .cover-frame {
+        width: 100%;
+        height: 100%;
+        padding: 4px;
+        background: #f8fafc;
+        border: 4px solid #000000;
+        box-shadow: inset 0 0 0 2px #111827;
+        box-sizing: border-box;
     }
     .cover-img {
         width: 100%;
         height: 100%;
         display: block;
-        object-fit: contain;
-        border: 3px solid rgba(15, 23, 42, 0.55);
+        object-fit: cover;
+        border: 1px solid #111827;
         box-sizing: border-box;
         background: transparent;
     }
@@ -272,8 +284,10 @@ else:
                 st.markdown(
                     f"""
                     <div class="cover-box">
-                        <img src="data:image/png;base64,{cover_b64}"
-                             class="cover-img">
+                        <div class="cover-frame">
+                            <img src="data:image/png;base64,{cover_b64}"
+                                 class="cover-img">
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True
