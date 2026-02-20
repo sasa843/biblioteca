@@ -24,7 +24,7 @@ def set_background(image_path):
             <style>
             .stApp {{
                 background-image:
-                    linear-gradient(rgba(255,255,255,0.6), rgba(255,255,255,0.6)),
+                    linear-gradient(rgba(255, 248, 229, 0.78), rgba(255, 253, 242, 0.78)),
                     url("data:image/png;base64,{b64}");
                 background-size: cover;
                 background-attachment: fixed;
@@ -72,8 +72,8 @@ df["Price"] = pd.to_numeric(df.get("Price", 0), errors="coerce").fillna(0)
 # =====================
 # HEADER
 # =====================
-st.markdown("<h1 style='text-align:center;'>📚 Saswata's Library</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Personal Book Collection</p>", unsafe_allow_html=True)
+st.markdown("<h1 class='app-title'>📚 Saswata's Library</h1>", unsafe_allow_html=True)
+st.markdown("<p class='app-subtitle'>Personal Book Collection</p>", unsafe_allow_html=True)
 st.write("---")
 
 # =====================
@@ -138,11 +138,52 @@ def get_cover_base64(isbn):
 st.markdown(
     """
     <style>
+    :root {
+        --ink: #1f2a37;
+        --muted: #475467;
+        --accent: #9a3412;
+        --card-bg: rgba(255, 255, 255, 0.92);
+        --card-border: rgba(190, 160, 110, 0.35);
+    }
+    .stApp, .stMarkdown, .stText, p, label, span, div {
+        color: var(--ink);
+    }
+    .block-container {
+        padding-top: 1.1rem;
+    }
+    .app-title {
+        text-align: center;
+        color: #0f172a;
+        font-size: 2.4rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.2rem;
+    }
+    .app-subtitle {
+        text-align: center;
+        color: var(--muted);
+        font-size: 1rem;
+        margin-top: 0;
+        margin-bottom: 0.6rem;
+    }
+    .result-count {
+        color: #111827;
+        font-size: 2rem;
+        font-weight: 800;
+        margin: 0.2rem 0 1rem 0;
+    }
+    div[data-testid="stExpander"] {
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid rgba(190, 160, 110, 0.35);
+        border-radius: 14px;
+        backdrop-filter: blur(6px);
+    }
     .book-card {
-        background: white;
+        background: var(--card-bg);
         border-radius: 14px;
         padding: 16px;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        border: 1px solid var(--card-border);
+        box-shadow: 0 8px 24px rgba(59, 42, 18, 0.14);
         height: 100%;
     }
     .cover-box {
@@ -152,16 +193,22 @@ st.markdown(
         justify-content: center;
         overflow: hidden;
         border-radius: 10px;
-        background: #f5f5f5;
+        background: linear-gradient(135deg, #f4f4f5, #e5e7eb);
     }
     .title {
         font-weight: 700;
+        color: #0f172a;
         margin-top: 10px;
         margin-bottom: 6px;
     }
     .meta {
         font-size: 14px;
+        color: var(--muted);
         margin-bottom: 4px;
+    }
+    .book-card .meta:last-child {
+        color: var(--accent);
+        font-weight: 700;
     }
     </style>
     """,
@@ -171,7 +218,7 @@ st.markdown(
 # =====================
 # DISPLAY GRID
 # =====================
-st.write(f"### 📖 Found {len(filtered_df)} Book(s)")
+st.markdown(f"<div class='result-count'>📖 Found {len(filtered_df)} Book(s)</div>", unsafe_allow_html=True)
 
 if filtered_df.empty:
     st.info("No books match your filters.")
