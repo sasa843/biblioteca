@@ -80,10 +80,11 @@ st.write("---")
 # FILTERS
 # =====================
 with st.expander("🔍 Search & Filters", expanded=True):
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3, c4 = st.columns(4)
     title_q = c1.text_input("Book Name")
     author_q = c2.text_input("Author")
     genre_q = c3.text_input("Genre")
+    language_q = c4.text_input("Language")
 
 # =====================
 # SORTING
@@ -110,6 +111,9 @@ if author_q and "Author" in filtered_df.columns:
 
 if genre_q and "Genre" in filtered_df.columns:
     filtered_df = filtered_df[contains(filtered_df["Genre"], genre_q)]
+
+if language_q and "Language" in filtered_df.columns:
+    filtered_df = filtered_df[contains(filtered_df["Language"], language_q)]
 
 filtered_df = filtered_df.sort_values(
     sort_by,
@@ -247,6 +251,7 @@ else:
                 st.markdown(f'<div class="title">📕 {book.get("Book Name","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">✍️ {book.get("Author","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">🏷 {book.get("Genre","")}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="meta">🌐 {book.get("Language","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">🏢 {book.get("Publisher","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">📦 {book.get("Format","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">💰 ₹{int(book["Price"])}</div>', unsafe_allow_html=True)
