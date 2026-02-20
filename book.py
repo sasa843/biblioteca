@@ -70,6 +70,21 @@ else:
 df["Price"] = pd.to_numeric(df.get("Price", 0), errors="coerce").fillna(0)
 
 # =====================
+# NORMALIZE FICTION COLUMN
+# =====================
+fiction_column = None
+for col in df.columns:
+    clean = col.strip().lower().replace("-", "").replace(" ", "").replace("/", "")
+    if clean in ["fictionnonfiction", "fictionornonfiction", "fictionnonfictiontype"]:
+        fiction_column = col
+        break
+
+if fiction_column:
+    df["FictionType"] = df[fiction_column].astype(str).fillna("")
+else:
+    df["FictionType"] = ""
+
+# =====================
 # HEADER
 # =====================
 st.markdown("<h1 class='app-title'>📚 Saswata's Library</h1>", unsafe_allow_html=True)
@@ -80,11 +95,12 @@ st.write("---")
 # FILTERS
 # =====================
 with st.expander("🔍 Search & Filters", expanded=True):
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     title_q = c1.text_input("Book Name")
     author_q = c2.text_input("Author")
     genre_q = c3.text_input("Genre")
     language_q = c4.text_input("Language")
+    fiction_q = c5.text_input("Fiction / Non-Fiction")
 
 # =====================
 # SORTING
@@ -114,6 +130,9 @@ if genre_q and "Genre" in filtered_df.columns:
 
 if language_q and "Language" in filtered_df.columns:
     filtered_df = filtered_df[contains(filtered_df["Language"], language_q)]
+
+if fiction_q and "FictionType" in filtered_df.columns:
+    filtered_df = filtered_df[contains(filtered_df["FictionType"], fiction_q)]
 
 filtered_df = filtered_df.sort_values(
     sort_by,
@@ -256,6 +275,7 @@ else:
                 st.markdown(f'<div class="title">📕 {book.get("Book Name","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">✍️ {book.get("Author","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">🏷 {book.get("Genre","")}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="meta">📚 {book.get("FictionType","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">🌐 {book.get("Language","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">🏢 {book.get("Publisher","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">📦 {book.get("Format","")}</div>', unsafe_allow_html=True)
