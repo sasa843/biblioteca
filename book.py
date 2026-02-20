@@ -202,21 +202,33 @@ st.markdown(
         backdrop-filter: blur(6px);
     }
     .book-card {
-        background: var(--card-bg);
-        border-radius: 14px;
+        background: transparent;
+        border-radius: 0;
         padding: 0;
-        overflow: hidden;
-        border: 1px solid var(--card-border);
-        box-shadow: 0 8px 24px rgba(59, 42, 18, 0.14);
-        height: 100%;
+        overflow: visible;
+        border: none;
+        box-shadow: none;
+        height: auto;
     }
     .cover-box {
-        line-height: 0;
+        width: 100%;
+        aspect-ratio: 2 / 3;
         padding: 0;
+        margin: 0;
+        background: transparent;
+        line-height: 0;
+    }
+    .cover-img {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: contain;
+        border: 3px solid rgba(15, 23, 42, 0.55);
+        box-sizing: border-box;
         background: transparent;
     }
     .book-info {
-        padding: 12px 14px 14px 14px;
+        padding: 8px 2px 10px 2px;
     }
     .title {
         font-weight: 700;
@@ -261,7 +273,7 @@ else:
                     f"""
                     <div class="cover-box">
                         <img src="data:image/png;base64,{cover_b64}"
-                             style="width:100%; height:auto; display:block; border:1px solid rgba(15, 23, 42, 0.18);">
+                             class="cover-img">
                     </div>
                     """,
                     unsafe_allow_html=True
