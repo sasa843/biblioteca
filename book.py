@@ -211,13 +211,9 @@ st.markdown(
         height: 100%;
     }
     .cover-box {
-        height: 260px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        border-radius: 0;
-        background: linear-gradient(160deg, #eef2f7, #e2e8f0);
+        line-height: 0;
+        padding: 0;
+        background: transparent;
     }
     .book-info {
         padding: 12px 14px 14px 14px;
@@ -265,7 +261,7 @@ else:
                     f"""
                     <div class="cover-box">
                         <img src="data:image/png;base64,{cover_b64}"
-                             style="max-height:220px; max-width:100%; object-fit:contain;">
+                             style="width:100%; height:auto; display:block; border:1px solid rgba(15, 23, 42, 0.18);">
                     </div>
                     """,
                     unsafe_allow_html=True
