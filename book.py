@@ -185,19 +185,23 @@ st.markdown(
     .book-card {
         background: var(--card-bg);
         border-radius: 14px;
-        padding: 16px;
+        padding: 0;
+        overflow: hidden;
         border: 1px solid var(--card-border);
         box-shadow: 0 8px 24px rgba(59, 42, 18, 0.14);
         height: 100%;
     }
     .cover-box {
-        height: 220px;
+        height: 260px;
         display: flex;
         align-items: center;
         justify-content: center;
         overflow: hidden;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #f4f4f5, #e5e7eb);
+        border-radius: 0;
+        background: linear-gradient(160deg, #eef2f7, #e2e8f0);
+    }
+    .book-info {
+        padding: 12px 14px 14px 14px;
     }
     .title {
         font-weight: 700;
@@ -248,6 +252,7 @@ else:
                     unsafe_allow_html=True
                 )
 
+                st.markdown('<div class="book-info">', unsafe_allow_html=True)
                 st.markdown(f'<div class="title">📕 {book.get("Book Name","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">✍️ {book.get("Author","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">🏷 {book.get("Genre","")}</div>', unsafe_allow_html=True)
@@ -255,5 +260,6 @@ else:
                 st.markdown(f'<div class="meta">🏢 {book.get("Publisher","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">📦 {book.get("Format","")}</div>', unsafe_allow_html=True)
                 st.markdown(f'<div class="meta">💰 ₹{int(book["Price"])}</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
 
                 st.markdown('</div>', unsafe_allow_html=True)
